@@ -7,7 +7,7 @@ dotnet restore
 dotnet run --project .\TodoApi\TodoApi.csproj
 ```
 
-API base URL: `http://localhost:5181` (see `TodoApi/Properties/launchSettings.json`)
+API base URL: `http://localhost:5182` (see `TodoApi/Properties/launchSettings.json`)
 
 ## Endpoints
 
