@@ -1,6 +1,7 @@
 .dotnet/
 **/bin/
 **/obj/
+.vs/
 *.user
 *.suo
 *.cache
