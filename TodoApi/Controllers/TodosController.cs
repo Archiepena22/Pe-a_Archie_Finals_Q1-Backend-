@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Threading.Channels;
 using TodoApi.Models;
 
 namespace TodoApi.Controllers;
@@ -10,11 +12,16 @@ namespace TodoApi.Controllers;
 public class TodosController : ControllerBase
 {
     private static readonly List<Todo> _todos = new();
+    private static readonly object _lock = new();
+    private static readonly List<Channel<string>> _streams = new();
 
     [HttpGet]
     public IActionResult Get()
     {
-        return Ok(_todos);
+        lock (_lock)
+        {
+            return Ok(_todos);
+        }
     }
 
     [HttpPost]
@@ -25,7 +32,11 @@ public class TodosController : ControllerBase
             return BadRequest("Title is required.");
         }
 
-        var previousHash = _todos.Count == 0 ? "GENESIS" : _todos[^1].Hash;
+        string previousHash;
+        lock (_lock)
+        {
+            previousHash = _todos.Count == 0 ? "GENESIS" : _todos[^1].Hash;
+        }
         var newTodo = new Todo
         {
             Id = Guid.NewGuid(),
@@ -35,7 +46,11 @@ public class TodosController : ControllerBase
         };
 
         newTodo.Hash = ComputeHash(newTodo);
-        _todos.Add(newTodo);
+        lock (_lock)
+        {
+            _todos.Add(newTodo);
+        }
+        BroadcastTodos();
         return Created($"/api/todos/{newTodo.Id}", newTodo);
     }
 
@@ -47,15 +62,23 @@ public class TodosController : ControllerBase
             return BadRequest("Title is required.");
         }
 
-        var existing = _todos.FirstOrDefault(t => t.Id == id);
+        Todo? existing;
+        lock (_lock)
+        {
+            existing = _todos.FirstOrDefault(t => t.Id == id);
+        }
         if (existing == null)
         {
             return NotFound();
         }
 
-        existing.Title = todo.Title.Trim();
-        existing.Completed = todo.Completed;
-        RebuildChainFromIndex(_todos.IndexOf(existing));
+        lock (_lock)
+        {
+            existing.Title = todo.Title.Trim();
+            existing.Completed = todo.Completed;
+            RebuildChainFromIndex(_todos.IndexOf(existing));
+        }
+        BroadcastTodos();
 
         return Ok(existing);
     }
@@ -63,37 +86,81 @@ public class TodosController : ControllerBase
     [HttpDelete("{id:guid}")]
     public IActionResult Delete(Guid id)
     {
-        var existing = _todos.FirstOrDefault(t => t.Id == id);
+        Todo? existing;
+        lock (_lock)
+        {
+            existing = _todos.FirstOrDefault(t => t.Id == id);
+        }
         if (existing == null)
         {
             return NotFound();
         }
 
-        _todos.Remove(existing);
-        RebuildChainFromIndex(0);
+        lock (_lock)
+        {
+            _todos.Remove(existing);
+            RebuildChainFromIndex(0);
+        }
+        BroadcastTodos();
         return NoContent();
     }
 
     [HttpGet("verify")]
     public IActionResult Verify()
     {
-        for (var i = 0; i < _todos.Count; i++)
+        lock (_lock)
         {
-            var current = _todos[i];
-            var expectedPreviousHash = i == 0 ? "GENESIS" : _todos[i - 1].Hash;
-            if (!string.Equals(current.PreviousHash, expectedPreviousHash, StringComparison.Ordinal))
+            for (var i = 0; i < _todos.Count; i++)
             {
-                return Conflict(new { message = "Chain tampered: previous hash mismatch." });
-            }
+                var current = _todos[i];
+                var expectedPreviousHash = i == 0 ? "GENESIS" : _todos[i - 1].Hash;
+                if (!string.Equals(current.PreviousHash, expectedPreviousHash, StringComparison.Ordinal))
+                {
+                    return Conflict(new { message = "Chain tampered: previous hash mismatch." });
+                }
 
-            var expectedHash = ComputeHash(current);
-            if (!string.Equals(current.Hash, expectedHash, StringComparison.Ordinal))
-            {
-                return Conflict(new { message = "Chain tampered: hash mismatch." });
+                var expectedHash = ComputeHash(current);
+                if (!string.Equals(current.Hash, expectedHash, StringComparison.Ordinal))
+                {
+                    return Conflict(new { message = "Chain tampered: hash mismatch." });
+                }
             }
         }
 
         return Ok(new { message = "Chain valid." });
+    }
+
+    [HttpGet("stream")]
+    public async Task Stream(CancellationToken cancellationToken)
+    {
+        Response.Headers.Append("Content-Type", "text/event-stream");
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("Connection", "keep-alive");
+
+        var channel = Channel.CreateUnbounded<string>();
+        lock (_lock)
+        {
+            _streams.Add(channel);
+        }
+
+        try
+        {
+            await foreach (var message in channel.Reader.ReadAllAsync(cancellationToken))
+            {
+                await Response.WriteAsync($"data: {message}\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            lock (_lock)
+            {
+                _streams.Remove(channel);
+            }
+        }
     }
 
     private static void RebuildChainFromIndex(int startIndex)
@@ -122,5 +189,25 @@ public class TodosController : ControllerBase
         }
 
         return builder.ToString();
+    }
+
+    private static void BroadcastTodos()
+    {
+        string payload;
+        lock (_lock)
+        {
+            payload = JsonSerializer.Serialize(_todos);
+        }
+
+        List<Channel<string>> streamsCopy;
+        lock (_lock)
+        {
+            streamsCopy = _streams.ToList();
+        }
+
+        foreach (var stream in streamsCopy)
+        {
+            stream.Writer.TryWrite(payload);
+        }
     }
 }
