@@ -28,5 +28,5 @@ API base URL: `http://localhost:5181` (see `TodoApi/Properties/launchSettings.js
 ## Bonus Challenge (Backend Ledger)
 
 - Hash is computed as SHA-256 of `Id|Title|Completed|PreviousHash`.
-- New items link to the previous item’s hash (or `GENESIS` for the first).
+- New items link to the previous item's hash (or `GENESIS` for the first).
 - `PUT`/`DELETE` rebuild the chain to keep integrity checks consistent.
