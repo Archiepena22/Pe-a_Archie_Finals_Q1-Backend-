@@ -23,7 +23,8 @@ Import the collection at:
 `Postman/Finals_Q1_Backend.postman_collection.json`
 
 Notes:
-- Set the `id` variable in Postman before running **Update Todo** or **Delete Todo**.
+- The collection is ordered for **Create → Verify → Update → Delete**.
+- The **Create Todo** request automatically stores the new `id` as a collection variable for Update/Delete.
 
 ## Architecture Notes
 

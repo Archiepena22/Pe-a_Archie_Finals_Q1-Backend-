@@ -6,20 +6,6 @@
   },
   "item": [
     {
-      "name": "Get Todos",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:5182/api/todos",
-          "protocol": "http",
-          "host": ["localhost"],
-          "port": "5182",
-          "path": ["api", "todos"]
-        }
-      }
-    },
-    {
       "name": "Create Todo",
       "request": {
         "method": "POST",
@@ -39,6 +25,36 @@
           "host": ["localhost"],
           "port": "5182",
           "path": ["api", "todos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201 || pm.response.code === 200) {",
+              "  const data = pm.response.json();",
+              "  if (data && data.id) {",
+              "    pm.collectionVariables.set(\"id\", data.id);",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify Chain",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5182/api/todos/verify",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5182",
+          "path": ["api", "todos", "verify"]
         }
       }
     },
@@ -80,16 +96,16 @@
       }
     },
     {
-      "name": "Verify Chain",
+      "name": "Get Todos",
       "request": {
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:5182/api/todos/verify",
+          "raw": "http://localhost:5182/api/todos",
           "protocol": "http",
           "host": ["localhost"],
           "port": "5182",
-          "path": ["api", "todos", "verify"]
+          "path": ["api", "todos"]
         }
       }
     }
