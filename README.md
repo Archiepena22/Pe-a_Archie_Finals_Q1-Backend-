@@ -17,6 +17,14 @@ API base URL: `http://localhost:5182` (see `TodoApi/Properties/launchSettings.js
 - `DELETE /api/todos/{id}`
 - `GET /api/todos/verify` (Blockchain-style chain validation)
 
+## Postman Collection
+
+Import the collection at:
+`Postman/Finals_Q1_Backend.postman_collection.json`
+
+Notes:
+- Set the `id` variable in Postman before running **Update Todo** or **Delete Todo**.
+
 ## Architecture Notes
 
 - ASP.NET Core Web API with controller-based routing.

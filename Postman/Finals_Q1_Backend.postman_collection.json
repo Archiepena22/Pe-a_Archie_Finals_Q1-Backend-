@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "Finals_Q1 Backend - Todo API",
+    "description": "Postman collection for testing the Todo API and blockchain-style verify endpoint.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Todos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5182/api/todos",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5182",
+          "path": ["api", "todos"]
+        }
+      }
+    },
+    {
+      "name": "Create Todo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"First task\",\n  \"completed\": false\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5182/api/todos",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5182",
+          "path": ["api", "todos"]
+        }
+      }
+    },
+    {
+      "name": "Update Todo",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated task\",\n  \"completed\": true\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5182/api/todos/{{id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5182",
+          "path": ["api", "todos", "{{id}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Todo",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5182/api/todos/{{id}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5182",
+          "path": ["api", "todos", "{{id}}"]
+        }
+      }
+    },
+    {
+      "name": "Verify Chain",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5182/api/todos/verify",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5182",
+          "path": ["api", "todos", "verify"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "id",
+      "value": ""
+    }
+  ]
+}
